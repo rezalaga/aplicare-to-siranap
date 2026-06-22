@@ -48,16 +48,16 @@ class SiranapService {
     }
 
     try {
-      // 1. Dapatkan data eksisting di SIRANAP untuk menentukan POST vs PUT
+      // 1. Dapatkan data eksisting di SIRANAP untuk menentukan id_t_tt
       const existingRes = await this.getBedData();
-      const existingRooms = existingRes.success && existingRes.data && existingRes.data.fasyankes 
-        ? existingRes.data.fasyankes 
-        : [];
+      const existingRooms = existingRes.success && Array.isArray(existingRes.data) 
+        ? existingRes.data 
+        : (existingRes.success && existingRes.data && existingRes.data.fasyankes ? existingRes.data.fasyankes : []);
       
-      const existingMap = new Set();
+      const existingMap = new Map();
       existingRooms.forEach(room => {
-        // Gabungan id_tt dan ruang untuk pengecekan unik
-        existingMap.add(`${room.id_tt}#${room.ruang}`);
+        // Simpan id_t_tt berdasarkan kombinasi id_tt dan ruang
+        existingMap.set(`${room.id_tt}#${room.ruang}`, room.id_t_tt);
       });
 
       // 2. Mapping kode kelas BPJS ke id_tt SIRANAP
@@ -89,21 +89,46 @@ class SiranapService {
           antrian: '0'
         };
 
-        const method = existingMap.has(`${id_tt}#${ruang}`) ? 'put' : 'post';
-        
+        const existingId_t_tt = existingMap.get(`${id_tt}#${ruang}`);
+        let method = 'post';
+
+        // Jika kamar sudah ada di SIRANAP, inject id_t_tt ke payload dan gunakan PUT
+        if (existingId_t_tt) {
+          payload.id_t_tt = existingId_t_tt;
+          method = 'put';
+        }
+
         try {
-          await axios({
+          const res = await axios({
             method: method,
             url: `${this.baseUrl}/fo/index.php/Fasyankes`,
             data: payload,
             headers: this._buildHeaders(),
             timeout: 10000
           });
+
+          // Pengecekan fallback (hanya berjaga-jaga jika ada asinkronisasi DB Kemenkes)
+          let responseMsg = '';
+          if (res.data && res.data.fasyankes && res.data.fasyankes.length > 0) {
+            responseMsg = res.data.fasyankes[0].message || '';
+          }
+
+          if (method === 'put' && responseMsg.includes('belum ada di database')) {
+             delete payload.id_t_tt;
+             await axios({
+              method: 'post',
+              url: `${this.baseUrl}/fo/index.php/Fasyankes`,
+              data: payload,
+              headers: this._buildHeaders(),
+              timeout: 10000
+            });
+          }
+
           successCount++;
         } catch (err) {
           errorCount++;
           lastError = err;
-          console.error(`[SIRANAP] Gagal ${method.toUpperCase()} ruang ${ruang}:`, err.response?.data || err.message);
+          console.error(`[SIRANAP] Gagal memproses ruang ${ruang}:`, err.response?.status, err.response?.data || err.message);
         }
       }
 
@@ -124,19 +149,15 @@ class SiranapService {
 
   /**
    * Ambil data referensi ruang dari SIRANAP (GET)
-   * GET /fo/poliklinik/get_tt_siranap/{kode_rs}
+   * GET /fo/index.php/Fasyankes
    */
   async getBedData() {
-    if (!this.isConfigured()) {
-      return { success: true, data: [], message: 'Mode demo - kredensial belum dikonfigurasi' };
-    }
-
     try {
       const response = await axios.get(
-        `${this.baseUrl}/fo/poliklinik/get_tt_siranap/${this.rsId}`,
+        `${this.baseUrl}/fo/index.php/Fasyankes`,
         {
           headers: this._buildHeaders(),
-          timeout: 10000,
+          timeout: 10000
         }
       );
       return { success: true, data: response.data };
