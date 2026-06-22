@@ -127,6 +127,9 @@ async function loadBedData() {
 
     // Table
     renderBedTable(beds);
+    
+    // Class Summary
+    renderClassSummary(beds);
   } catch (err) {
     console.error('loadBedData error:', err);
   }
@@ -139,32 +142,125 @@ function renderBedTable(beds) {
     return;
   }
 
-  tbody.innerHTML = beds.map((room) => {
-    const pct = room.total_tt > 0 ? Math.round((room.terpakai / room.total_tt) * 100) : 0;
-    const fillClass = pct >= 90 ? 'high' : pct >= 70 ? 'medium' : 'low';
-    const pctColor = pct >= 90 ? '#ef4444' : pct >= 70 ? '#f59e0b' : '#10b981';
+  const classMap = {};
+  beds.forEach(room => {
+    const className = room.nama_kelas || 'Lainnya';
+    if (!classMap[className]) classMap[className] = [];
+    classMap[className].push(room);
+  });
 
-    return `
-      <tr>
-        <td>
-          <div class="room-name">${escHtml(room.nama_ruang)}</div>
-          <div class="room-code">${escHtml(room.kode_ruang)}</div>
-        </td>
-        <td><span class="kelas-badge">${escHtml(room.nama_kelas)}</span></td>
-        <td><strong>${room.total_tt}</strong></td>
-        <td style="color: ${room.terpakai > 0 ? '#ef4444' : '#64748b'}">${room.terpakai}</td>
-        <td style="color: ${room.kosong > 0 ? '#10b981' : '#64748b'}">${room.kosong}</td>
-        <td>${room.kosong_pria}</td>
-        <td>${room.kosong_wanita}</td>
-        <td>
-          <div class="occupancy-mini">
-            <div class="mini-bar">
-              <div class="mini-fill ${fillClass}" style="width: ${pct}%"></div>
-            </div>
-            <span class="mini-pct" style="color: ${pctColor}">${pct}%</span>
+  const classKeys = Object.keys(classMap).sort();
+  
+  let html = '';
+  classKeys.forEach((className, index) => {
+    const safeClassName = 'group-' + index;
+    // Header class
+    html += `
+      <tr class="table-group-header" onclick="toggleGroup('${safeClassName}')">
+        <td colspan="8">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span>${escHtml(className)}</span>
+            <svg id="icon-${safeClassName}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px; transition: transform 0.2s; transform: rotate(-90deg);">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
           </div>
         </td>
       </tr>
+    `;
+    
+    // Rooms in this class
+    classMap[className].forEach(room => {
+      const pct = room.total_tt > 0 ? Math.round((room.terpakai / room.total_tt) * 100) : 0;
+      const fillClass = pct >= 90 ? 'high' : pct >= 70 ? 'medium' : 'low';
+      const pctColor = pct >= 90 ? '#ef4444' : pct >= 70 ? '#f59e0b' : '#10b981';
+
+      html += `
+        <tr class="${safeClassName}" style="display: none;">
+          <td>
+            <div class="room-name">${escHtml(room.nama_ruang)}</div>
+            <div class="room-code">${escHtml(room.kode_ruang)}</div>
+          </td>
+          <td><span class="kelas-badge">${escHtml(room.nama_kelas)}</span></td>
+          <td><strong>${room.total_tt}</strong></td>
+          <td style="color: ${room.terpakai > 0 ? '#ef4444' : '#64748b'}">${room.terpakai}</td>
+          <td style="color: ${room.kosong > 0 ? '#10b981' : '#64748b'}">${room.kosong}</td>
+          <td>${room.kosong_pria}</td>
+          <td>${room.kosong_wanita}</td>
+          <td>
+            <div class="occupancy-mini">
+              <div class="mini-bar">
+                <div class="mini-fill ${fillClass}" style="width: ${pct}%"></div>
+              </div>
+              <span class="mini-pct" style="color: ${pctColor}">${pct}%</span>
+            </div>
+          </td>
+        </tr>
+      `;
+    });
+  });
+
+  tbody.innerHTML = html;
+}
+
+function toggleGroup(groupClass) {
+  const rows = document.querySelectorAll('.' + groupClass);
+  const icon = document.getElementById('icon-' + groupClass);
+  let isHidden = false;
+  
+  rows.forEach(row => {
+    if (row.style.display === 'none') {
+      row.style.display = '';
+      isHidden = false;
+    } else {
+      row.style.display = 'none';
+      isHidden = true;
+    }
+  });
+  
+  if (icon) {
+    icon.style.transform = isHidden ? 'rotate(-90deg)' : 'rotate(0deg)';
+  }
+}
+
+function renderClassSummary(beds) {
+  const summaryGrid = document.getElementById('class-summary-grid');
+  const summarySection = document.getElementById('class-summary-section');
+  
+  if (!beds || beds.length === 0) {
+    summarySection.style.display = 'none';
+    return;
+  }
+  
+  summarySection.style.display = 'block';
+  
+  const classMap = {};
+  beds.forEach(room => {
+    const className = room.nama_kelas || 'Lainnya';
+    if (!classMap[className]) {
+      classMap[className] = { total: 0, kosong: 0 };
+    }
+    classMap[className].total += room.total_tt;
+    classMap[className].kosong += room.kosong;
+  });
+  
+  const classKeys = Object.keys(classMap).sort();
+  
+  summaryGrid.innerHTML = classKeys.map(key => {
+    const data = classMap[key];
+    return `
+      <div class="class-summary-card">
+        <div class="class-name">${escHtml(key)}</div>
+        <div class="class-stats">
+          <div class="c-stat">
+            <span class="c-label">Tempat Tidur</span>
+            <span class="c-value text-blue">${data.total}</span>
+          </div>
+          <div class="c-stat">
+            <span class="c-label">Kosong</span>
+            <span class="c-value text-green">${data.kosong}</span>
+          </div>
+        </div>
+      </div>
     `;
   }).join('');
 }

@@ -48,26 +48,74 @@ class SiranapService {
     }
 
     try {
-      const payload = {
-        kode_rs: this.rsId,
-        timestamp: new Date().toISOString(),
-        data: bedData,
+      // 1. Dapatkan data eksisting di SIRANAP untuk menentukan POST vs PUT
+      const existingRes = await this.getBedData();
+      const existingRooms = existingRes.success && existingRes.data && existingRes.data.fasyankes 
+        ? existingRes.data.fasyankes 
+        : [];
+      
+      const existingMap = new Set();
+      existingRooms.forEach(room => {
+        // Gabungan id_tt dan ruang untuk pengecekan unik
+        existingMap.add(`${room.id_tt}#${room.ruang}`);
+      });
+
+      // 2. Mapping kode kelas BPJS ke id_tt SIRANAP
+      const classMap = {
+        'VVIP': '1', 'VIP': '2', 'KL1': '3', 'KL2': '4', 'KL3': '5',
+        'ICU': '6', 'HCU': '7', 'ICC': '8', 'NIC': '10', 'PIC': '11', 'ISO': '12'
       };
 
-      const response = await axios.post(
-        `${this.baseUrl}/fo/index.php/Fasyankes`,
-        payload,
-        {
-          headers: this._buildHeaders(),
-          timeout: 15000,
+      let successCount = 0;
+      let errorCount = 0;
+      let lastError = null;
+
+      // 3. Kirim data satu per satu
+      for (const bed of bedData) {
+        const id_tt = classMap[bed.kode_kelas] || '5'; // fallback
+        const ruang = bed.nama_ruang;
+        
+        const payload = {
+          id_tt: id_tt,
+          ruang: ruang,
+          jumlah_ruang: '0',
+          jumlah: bed.total_tt.toString(),
+          terpakai: bed.terpakai.toString(),
+          terpakai_suspek: '0',
+          terpakai_konfirmasi: '0',
+          prepare: '0',
+          prepare_plan: '0',
+          covid: '0',
+          antrian: '0'
+        };
+
+        const method = existingMap.has(`${id_tt}#${ruang}`) ? 'put' : 'post';
+        
+        try {
+          await axios({
+            method: method,
+            url: `${this.baseUrl}/fo/index.php/Fasyankes`,
+            data: payload,
+            headers: this._buildHeaders(),
+            timeout: 10000
+          });
+          successCount++;
+        } catch (err) {
+          errorCount++;
+          lastError = err;
+          console.error(`[SIRANAP] Gagal ${method.toUpperCase()} ruang ${ruang}:`, err.response?.data || err.message);
         }
-      );
+      }
+
+      if (errorCount > 0 && successCount === 0) {
+        throw lastError; // Semua gagal
+      }
 
       return {
         success: true,
-        statusCode: response.status,
-        message: response.data?.message || 'Data berhasil dikirim ke SIRANAP',
-        data: response.data,
+        statusCode: 200,
+        message: `Data berhasil dikirim ke SIRANAP (${successCount} sukses, ${errorCount} gagal)`,
+        data: { success: successCount, failed: errorCount }
       };
     } catch (error) {
       throw this._handleError('updateBedAvailability', error);

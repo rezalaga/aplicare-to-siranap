@@ -15,8 +15,8 @@ FROM node:20-alpine
 LABEL maintainer="Bridge APLICARE → SIRANAP"
 LABEL description="Aplikasi bridge pengiriman data ketersediaan tempat tidur ke SIRANAP Kemenkes"
 
-# Install build tools untuk better-sqlite3
-RUN apk add --no-cache python3 make g++
+# Install build tools untuk better-sqlite3 dan tzdata untuk timezone WIB
+RUN apk add --no-cache python3 make g++ tzdata
 
 WORKDIR /app
 

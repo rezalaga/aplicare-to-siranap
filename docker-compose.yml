@@ -11,6 +11,8 @@ services:
       - "3000:3000"
     env_file:
       - .env
+    environment:
+      - TZ=Asia/Jakarta
     volumes:
       # Persistensi database SQLite
       - bridge_data:/app/data

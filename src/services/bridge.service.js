@@ -181,7 +181,7 @@ class BridgeService {
         kode_ruang: room.koderuang || '',
         nama_ruang: room.namaruang || '',
         kode_kelas: room.kodekelas || '',
-        nama_kelas: room.kodekelas_nama || '',
+        nama_kelas: room.namakelas || room.kodekelas_nama || '',
         total_tt: kapasitas,
         terpakai: terpakai > 0 ? terpakai : 0,
         kosong: tersedia,
