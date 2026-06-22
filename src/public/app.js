@@ -10,6 +10,7 @@ let isSyncing = false;
 document.addEventListener('DOMContentLoaded', () => {
   loadAll();
   startAutoRefresh();
+  startLiveClock();
 });
 
 function startAutoRefresh() {
@@ -19,6 +20,24 @@ function startAutoRefresh() {
     loadBedData();
     loadLogs(true);
   }, 30000);
+}
+
+function startLiveClock() {
+  const clockEl = document.getElementById('live-clock');
+  if (!clockEl) return;
+  
+  const updateClock = () => {
+    const d = new Date();
+    clockEl.textContent = d.toLocaleTimeString('id-ID', { 
+      timeZone: 'Asia/Jakarta',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    }) + ' WIB';
+  };
+  
+  updateClock();
+  setInterval(updateClock, 1000);
 }
 
 async function loadAll() {
