@@ -1082,6 +1082,8 @@ body {
   color: var(--text-muted);
   text-transform: uppercase;
   margin-bottom: 4px;
+  text-align: center;
+  line-height: 1.2;
 }
 
 .c-value {
