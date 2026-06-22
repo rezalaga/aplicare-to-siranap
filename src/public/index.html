@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bridge APLICARE → SIRANAP | Dashboard</title>
+  <meta name="description" content="Dashboard monitoring sinkronisasi data ketersediaan tempat tidur dari APLICARE BPJS ke SIRANAP Kementerian Kesehatan RI" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="header-inner container">
+      <div class="header-brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+            <polyline points="9 22 9 12 15 12 15 22"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1 class="brand-title">APLICARE → SIRANAP</h1>
+          <p class="brand-subtitle" id="rs-name">Bridge System</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <div class="refresh-indicator" id="refresh-indicator">
+          <div class="refresh-dot"></div>
+          <span>Auto-refresh 30s</span>
+        </div>
+        <button class="btn btn-primary" id="btn-sync" onclick="triggerSync()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="1 4 1 10 7 10"/>
+            <polyline points="23 20 23 14 17 14"/>
+            <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/>
+          </svg>
+          Sinkronisasi Sekarang
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="main container">
+    <!-- Connection Status Banner -->
+    <section class="connections-section" id="connections-section">
+      <div class="conn-card" id="conn-bpjs">
+        <div class="conn-icon bpjs">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
+            <line x1="9" y1="9" x2="9.01" y2="9"/>
+            <line x1="15" y1="9" x2="15.01" y2="9"/>
+          </svg>
+        </div>
+        <div class="conn-info">
+          <span class="conn-label">APLICARE BPJS</span>
+          <span class="conn-status" id="bpjs-status">Memeriksa...</span>
+        </div>
+        <div class="conn-indicator" id="bpjs-indicator">
+          <div class="indicator-dot loading"></div>
+        </div>
+      </div>
+
+      <div class="conn-arrow">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="5" y1="12" x2="19" y2="12"/>
+          <polyline points="12 5 19 12 12 19"/>
+        </svg>
+      </div>
+
+      <div class="conn-card" id="conn-siranap">
+        <div class="conn-icon siranap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+          </svg>
+        </div>
+        <div class="conn-info">
+          <span class="conn-label">SIRANAP Kemenkes</span>
+          <span class="conn-status" id="siranap-status">Memeriksa...</span>
+        </div>
+        <div class="conn-indicator" id="siranap-indicator">
+          <div class="indicator-dot loading"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Stats Cards -->
+    <section class="stats-section">
+      <div class="stat-card" id="stat-total">
+        <div class="stat-icon total">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+            <line x1="3" y1="9" x2="21" y2="9"/>
+            <line x1="9" y1="21" x2="9" y2="9"/>
+          </svg>
+        </div>
+        <div class="stat-body">
+          <div class="stat-value" id="stat-kapasitas">—</div>
+          <div class="stat-label">Total Kapasitas TT</div>
+        </div>
+      </div>
+
+      <div class="stat-card" id="stat-terpakai">
+        <div class="stat-icon occupied">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+        </div>
+        <div class="stat-body">
+          <div class="stat-value" id="stat-terpakai">—</div>
+          <div class="stat-label">Terpakai</div>
+        </div>
+      </div>
+
+      <div class="stat-card" id="stat-kosong">
+        <div class="stat-icon available">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+        </div>
+        <div class="stat-body">
+          <div class="stat-value" id="stat-kosong">—</div>
+          <div class="stat-label">Tersedia / Kosong</div>
+        </div>
+      </div>
+
+      <div class="stat-card" id="stat-rooms">
+        <div class="stat-icon rooms">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+          </svg>
+        </div>
+        <div class="stat-body">
+          <div class="stat-value" id="stat-rooms-val">—</div>
+          <div class="stat-label">Jumlah Ruang</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Occupancy Bar -->
+    <section class="occupancy-section" id="occupancy-section" style="display:none">
+      <div class="section-header">
+        <h2 class="section-title">Tingkat Hunian</h2>
+        <span class="occupancy-pct" id="occupancy-pct">0%</span>
+      </div>
+      <div class="occupancy-bar-wrap">
+        <div class="occupancy-bar">
+          <div class="occupancy-fill" id="occupancy-fill" style="width: 0%"></div>
+        </div>
+      </div>
+      <div class="occupancy-legend">
+        <span class="legend-item occupied-legend"><span class="dot"></span>Terpakai</span>
+        <span class="legend-item available-legend"><span class="dot"></span>Tersedia</span>
+      </div>
+    </section>
+
+    <!-- Bed Data Table -->
+    <section class="bed-section">
+      <div class="section-header">
+        <h2 class="section-title">Data Ketersediaan Tempat Tidur</h2>
+        <span class="section-meta" id="bed-last-updated">—</span>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table" id="bed-table">
+          <thead>
+            <tr>
+              <th>Ruang</th>
+              <th>Kelas</th>
+              <th>Kapasitas</th>
+              <th>Terpakai</th>
+              <th>Tersedia</th>
+              <th>Pria</th>
+              <th>Wanita</th>
+              <th>Hunian</th>
+            </tr>
+          </thead>
+          <tbody id="bed-table-body">
+            <tr><td colspan="8" class="table-empty">Klik Sinkronisasi untuk memuat data</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Sync Logs Section -->
+    <section class="logs-section">
+      <div class="section-header">
+        <h2 class="section-title">Riwayat Sinkronisasi</h2>
+        <div class="sync-stats-mini" id="sync-stats-mini"></div>
+      </div>
+      <div class="logs-list" id="logs-list">
+        <div class="log-empty">Belum ada riwayat sinkronisasi</div>
+      </div>
+      <div class="logs-footer" id="logs-footer" style="display:none">
+        <button class="btn btn-ghost" id="btn-load-more" onclick="loadMoreLogs()">Muat lebih banyak</button>
+      </div>
+    </section>
+
+    <!-- Config Section -->
+    <section class="config-section">
+      <div class="section-header">
+        <h2 class="section-title">Konfigurasi Aktif</h2>
+      </div>
+      <div class="config-grid" id="config-grid">
+        <div class="config-loading">Memuat konfigurasi...</div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Toast Notification -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Sync Modal -->
+  <div class="modal-overlay" id="sync-modal" style="display:none">
+    <div class="modal">
+      <div class="modal-icon">
+        <div class="spinner"></div>
+      </div>
+      <h3 class="modal-title">Sinkronisasi Berlangsung</h3>
+      <p class="modal-desc">Mengambil data dari APLICARE BPJS dan mengirim ke SIRANAP Kemenkes...</p>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
