@@ -56,8 +56,8 @@ class SiranapService {
       
       const existingMap = new Map();
       existingRooms.forEach(room => {
-        // Simpan id_t_tt berdasarkan kombinasi id_tt dan ruang
-        existingMap.set(`${room.id_tt}#${room.ruang}`, room.id_t_tt);
+        // Simpan seluruh objek room berdasarkan nama ruang agar kita bisa mewarisi id_tt yang benar dari Kemenkes
+        existingMap.set(room.ruang, room);
       });
 
       // 2. Mapping kode kelas BPJS ke id_tt SIRANAP
@@ -72,9 +72,20 @@ class SiranapService {
 
       // 3. Kirim data satu per satu
       for (const bed of bedData) {
-        const id_tt = classMap[bed.kode_kelas] || '5'; // fallback
+        let id_tt = classMap[bed.kode_kelas] || '5'; // fallback
         const ruang = bed.nama_ruang;
         
+        const existingRoom = existingMap.get(ruang);
+        let method = 'post';
+        let id_t_tt = null;
+
+        // Jika kamar sudah ada di SIRANAP, inherit id_tt dari Kemenkes dan gunakan PUT
+        if (existingRoom) {
+          id_tt = existingRoom.id_tt;
+          id_t_tt = existingRoom.id_t_tt;
+          method = 'put';
+        }
+
         const payload = {
           id_tt: id_tt,
           ruang: ruang,
@@ -89,13 +100,8 @@ class SiranapService {
           antrian: '0'
         };
 
-        const existingId_t_tt = existingMap.get(`${id_tt}#${ruang}`);
-        let method = 'post';
-
-        // Jika kamar sudah ada di SIRANAP, inject id_t_tt ke payload dan gunakan PUT
-        if (existingId_t_tt) {
-          payload.id_t_tt = existingId_t_tt;
-          method = 'put';
+        if (id_t_tt) {
+          payload.id_t_tt = id_t_tt;
         }
 
         try {
