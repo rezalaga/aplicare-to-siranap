@@ -173,21 +173,21 @@ class BridgeService {
    */
   transformToSiranap(bedData) {
     return bedData.map((room) => {
-      const kapasitas = parseInt(room.kapasitas) || 0;
-      const tersedia = parseInt(room.tersedia) || 0;
-      const terpakai = kapasitas - tersedia;
+      const kapasitas = parseInt(room.kapasitas, 10) || 0;
+      const tersedia = parseInt(room.tersedia, 10) || 0;
+      const terpakai = Math.max(0, kapasitas - tersedia);
 
       return {
-        kode_ruang: room.koderuang || '',
-        nama_ruang: room.namaruang || '',
-        kode_kelas: room.kodekelas || '',
-        nama_kelas: room.namakelas || room.kodekelas_nama || '',
+        kode_ruang: String(room.koderuang || ''),
+        nama_ruang: String(room.namaruang || ''),
+        kode_kelas: String(room.kodekelas || ''),
+        nama_kelas: String(room.namakelas || room.kodekelas_nama || ''),
         total_tt: kapasitas,
-        terpakai: terpakai > 0 ? terpakai : 0,
+        terpakai: terpakai,
         kosong: tersedia,
-        kosong_pria: parseInt(room.tersediapria) || 0,
-        kosong_wanita: parseInt(room.tersediawanita) || 0,
-        tersedia_priaWanita: parseInt(room.tersediapriawanita) || 0,
+        kosong_pria: parseInt(room.tersediapria, 10) || 0,
+        kosong_wanita: parseInt(room.tersediawanita, 10) || 0,
+        tersedia_priaWanita: parseInt(room.tersediapriawanita, 10) || 0,
         updated_at: new Date().toISOString(),
       };
     });

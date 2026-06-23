@@ -8,6 +8,16 @@ const siranapService = require('../services/siranap.service');
 const bridgeService = require('../services/bridge.service');
 const syncLogModel = require('../models/sync-log.model');
 
+// Middleware sederhana untuk autentikasi API Key
+const authMiddleware = (req, res, next) => {
+  const apiKey = req.headers['x-api-key'];
+  const validKey = process.env.API_KEY || 'default-secret-key';
+  if (!apiKey || apiKey !== validKey) {
+    return res.status(401).json({ success: false, message: 'Unauthorized: API Key tidak valid' });
+  }
+  next();
+};
+
 // -------------------------------------------------------
 // GET /api/status
 // Status aplikasi, konfigurasi, dan koneksi
@@ -83,7 +93,7 @@ router.get('/logs', (req, res) => {
 // POST /api/sync/manual
 // Trigger sinkronisasi manual
 // -------------------------------------------------------
-router.post('/sync/manual', async (req, res) => {
+router.post('/sync/manual', authMiddleware, async (req, res) => {
   try {
     console.log('[API] Sinkronisasi manual dipicu via web dashboard');
     const result = await bridgeService.syncManual('manual-web');

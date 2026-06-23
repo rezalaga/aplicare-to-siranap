@@ -28,6 +28,15 @@ app.use(express.static(path.join(__dirname, 'public')));
 // -------------------------------------------------------
 app.use('/api', apiRoutes);
 
+// Global Error Handler
+app.use((err, req, res, next) => {
+  console.error(`[SERVER_ERROR] ${err.stack}`);
+  res.status(err.status || 500).json({
+    success: false,
+    message: err.message || 'Internal Server Error',
+  });
+});
+
 // Semua route lain → dashboard
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -71,7 +80,7 @@ app.listen(PORT, () => {
   console.log('║      Bridge APLICARE BPJS → SIRANAP Kemenkes     ║');
   console.log('╠══════════════════════════════════════════════════╣');
   console.log(`║  RS    : ${rsName.padEnd(40)}║`);
-  console.log(`║  Port  : http://localhost:${PORT.toString().padEnd(22)}   ║`);
+  console.log(`║  Port  : http://localhost:${PORT.toString().padEnd(22)}║`);
   console.log(`║  Env   : ${(process.env.NODE_ENV || 'development').padEnd(40)}║`);
   console.log(`║  Cron  : ${SYNC_CRON.padEnd(40)}║`);
   console.log('╚══════════════════════════════════════════════════╝');

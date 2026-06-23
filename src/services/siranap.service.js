@@ -70,41 +70,43 @@ class SiranapService {
       let errorCount = 0;
       let lastError = null;
 
-      // 3. Kirim data satu per satu
-      for (const bed of bedData) {
-        let id_tt = classMap[bed.kode_kelas] || '5'; // fallback
-        const ruang = bed.nama_ruang;
-        
-        const existingRoom = existingMap.get(ruang);
-        let method = 'post';
-        let id_t_tt = null;
+      // 3. Kirim data secara batch (maksimal 5 request sekaligus)
+      const BATCH_SIZE = 5;
+      let successCount = 0;
+      let errorCount = 0;
+      let lastError = null;
 
-        // Jika kamar sudah ada di SIRANAP, inherit id_tt dari Kemenkes dan gunakan PUT
-        if (existingRoom) {
-          id_tt = existingRoom.id_tt;
-          id_t_tt = existingRoom.id_t_tt;
-          method = 'put';
-        }
+      for (let i = 0; i < bedData.length; i += BATCH_SIZE) {
+        const batch = bedData.slice(i, i + BATCH_SIZE);
+        const results = await Promise.allSettled(batch.map(async (bed) => {
+          let id_tt = classMap[bed.kode_kelas] || '5'; 
+          const ruang = bed.nama_ruang;
+          const existingRoom = existingMap.get(ruang);
+          let method = 'post';
+          let id_t_tt = null;
 
-        const payload = {
-          id_tt: id_tt,
-          ruang: ruang,
-          jumlah_ruang: '0',
-          jumlah: bed.total_tt.toString(),
-          terpakai: bed.terpakai.toString(),
-          terpakai_suspek: '0',
-          terpakai_konfirmasi: '0',
-          prepare: '0',
-          prepare_plan: '0',
-          covid: '0',
-          antrian: '0'
-        };
+          if (existingRoom) {
+            id_tt = existingRoom.id_tt;
+            id_t_tt = existingRoom.id_t_tt;
+            method = 'put';
+          }
 
-        if (id_t_tt) {
-          payload.id_t_tt = id_t_tt;
-        }
+          const payload = {
+            id_tt: id_tt,
+            ruang: ruang,
+            jumlah_ruang: '0',
+            jumlah: bed.total_tt.toString(),
+            terpakai: bed.terpakai.toString(),
+            terpakai_suspek: '0',
+            terpakai_konfirmasi: '0',
+            prepare: '0',
+            prepare_plan: '0',
+            covid: '0',
+            antrian: '0'
+          };
 
-        try {
+          if (id_t_tt) payload.id_t_tt = id_t_tt;
+
           const res = await axios({
             method: method,
             url: `${this.baseUrl}/fo/index.php/Fasyankes`,
@@ -113,15 +115,14 @@ class SiranapService {
             timeout: 10000
           });
 
-          // Pengecekan fallback (hanya berjaga-jaga jika ada asinkronisasi DB Kemenkes)
           let responseMsg = '';
           if (res.data && res.data.fasyankes && res.data.fasyankes.length > 0) {
             responseMsg = res.data.fasyankes[0].message || '';
           }
 
           if (method === 'put' && responseMsg.includes('belum ada di database')) {
-             delete payload.id_t_tt;
-             await axios({
+            delete payload.id_t_tt;
+            await axios({
               method: 'post',
               url: `${this.baseUrl}/fo/index.php/Fasyankes`,
               data: payload,
@@ -129,13 +130,16 @@ class SiranapService {
               timeout: 10000
             });
           }
+          return res;
+        }));
 
-          successCount++;
-        } catch (err) {
-          errorCount++;
-          lastError = err;
-          console.error(`[SIRANAP] Gagal memproses ruang ${ruang}:`, err.response?.status, err.response?.data || err.message);
-        }
+        results.forEach(res => {
+          if (res.status === 'fulfilled') successCount++;
+          else {
+            errorCount++;
+            lastError = res.reason;
+          }
+        });
       }
 
       if (errorCount > 0 && successCount === 0) {
