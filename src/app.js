@@ -80,7 +80,7 @@ app.listen(PORT, () => {
   console.log('║      Bridge APLICARE BPJS → SIRANAP Kemenkes     ║');
   console.log('╠══════════════════════════════════════════════════╣');
   console.log(`║  RS    : ${rsName.padEnd(40)}║`);
-  console.log(`║  Port  : http://localhost:${PORT.toString().padEnd(22)}║`);
+  console.log(`║  Port  : http://localhost:${PORT.toString().padEnd(22)} ║`);
   console.log(`║  Env   : ${(process.env.NODE_ENV || 'development').padEnd(40)}║`);
   console.log(`║  Cron  : ${SYNC_CRON.padEnd(40)}║`);
   console.log('╚══════════════════════════════════════════════════╝');
