@@ -74,3 +74,28 @@ Jika kredensial di file `.env` kosong (belum diisi), aplikasi akan otomatis berj
   docker compose logs -f
   ```
 - **Koneksi Gagal**: Periksa URL endpoint di `.env`. BPJS memiliki URL Development (`https://dvlp.bpjs-kesehatan.go.id:8888`) dan Production (`https://new-api.bpjs-kesehatan.go.id`). Pastikan kredensial yang Anda pakai sesuai dengan environment server BPJS.
+
+## Struktur Direktori
+
+```text
+.
+├── .env.example
+├── Dockerfile
+├── README.md
+├── docker-compose.yml
+├── package.json
+└── src
+    ├── app.js
+    ├── models
+    │   └── sync-log.model.js
+    ├── public
+    │   ├── app.js
+    │   ├── index.html
+    │   └── style.css
+    ├── routes
+    │   └── api.routes.js
+    └── services
+        ├── aplicare.service.js
+        ├── bridge.service.js
+        └── siranap.service.js
+```
