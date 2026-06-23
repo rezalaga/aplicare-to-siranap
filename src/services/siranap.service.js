@@ -72,9 +72,6 @@ class SiranapService {
 
       // 3. Kirim data secara batch (maksimal 5 request sekaligus)
       const BATCH_SIZE = 5;
-      let successCount = 0;
-      let errorCount = 0;
-      let lastError = null;
 
       for (let i = 0; i < bedData.length; i += BATCH_SIZE) {
         const batch = bedData.slice(i, i + BATCH_SIZE);
