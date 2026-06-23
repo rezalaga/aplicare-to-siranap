@@ -28,12 +28,15 @@ function startLiveClock() {
   
   const updateClock = () => {
     const d = new Date();
-    clockEl.textContent = d.toLocaleTimeString('id-ID', { 
+    clockEl.textContent = d.toLocaleString('id-ID', { 
       timeZone: 'Asia/Jakarta',
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit'
-    }) + ' WIB';
+    }).replace(/,/g, '') + ' WIB';
   };
   
   updateClock();
@@ -123,8 +126,8 @@ async function loadBedData() {
     const totalKosong = beds.reduce((s, r) => s + (r.kosong || 0), 0);
 
     animateValue('stat-kapasitas', totalKapasitas);
-    animateValue('stat-terpakai', totalTerpakai);
-    animateValue('stat-kosong', totalKosong);
+    animateValue('stat-terpakai-val', totalTerpakai);
+    animateValue('stat-kosong-val', totalKosong);
     animateValue('stat-rooms-val', beds.length);
 
     // Occupancy bar

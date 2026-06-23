@@ -1084,6 +1084,10 @@ body {
   margin-bottom: 4px;
   text-align: center;
   line-height: 1.2;
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .c-value {
