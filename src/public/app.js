@@ -420,10 +420,47 @@ async function triggerSync() {
       showToast(`⚠️ ${data.message || 'Sinkronisasi selesai dengan peringatan'}`, 'info');
     }
 
-    // Reload data
     await Promise.allSettled([loadStatus(), loadBedData(), loadLogs(true)]);
   } catch (err) {
     modal.style.display = 'none';
+    showToast(`❌ Error: ${err.message}`, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.classList.remove('loading');
+    isSyncing = false;
+  }
+}
+
+async function triggerClearResync() {
+  if (isSyncing) return;
+  if (!confirm('Hapus semua data tempat tidur di SIRANAP lalu kirim ulang? Data yang sudah di-nol-kan tidak bisa dikembalikan.')) return;
+
+  isSyncing = true;
+
+  const btn = document.getElementById('btn-clear-resync');
+  const modal = document.getElementById('sync-modal');
+
+  btn.disabled = true;
+  btn.classList.add('loading');
+  modal.style.display = 'flex';
+  document.querySelector('.modal-desc').textContent = 'Menghapus data lama di SIRANAP dan mengirim ulang data terbaru...';
+
+  try {
+    const data = await apiFetch('/api/sync/clear-and-resync', { method: 'POST' });
+
+    modal.style.display = 'none';
+    document.querySelector('.modal-desc').textContent = 'Mengambil data dari APLICARE BPJS dan mengirim ke SIRANAP Kemenkes...';
+
+    if (data.success) {
+      showToast(`✅ ${data.message}`, 'success');
+    } else {
+      showToast(`⚠️ ${data.message || 'Clear & Resync selesai dengan peringatan'}`, 'info');
+    }
+
+    await Promise.allSettled([loadStatus(), loadBedData(), loadLogs(true)]);
+  } catch (err) {
+    modal.style.display = 'none';
+    document.querySelector('.modal-desc').textContent = 'Mengambil data dari APLICARE BPJS dan mengirim ke SIRANAP Kemenkes...';
     showToast(`❌ Error: ${err.message}`, 'error');
   } finally {
     btn.disabled = false;

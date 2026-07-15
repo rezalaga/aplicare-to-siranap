@@ -165,8 +165,78 @@ class SiranapService {
       );
       return { success: true, data: response.data };
     } catch (error) {
-      // Non-fatal: return empty jika belum ada data
       return { success: false, data: [], message: error.message };
+    }
+  }
+
+  /**
+   * Hapus semua data tempat tidur di SIRANAP
+   * DELETE per ruang via API, fallback zero-out jika DELETE tidak didukung
+   */
+  async clearBedData() {
+    if (!this.isConfigured()) {
+      return { success: true, message: '[DEMO] Simulasi penghapusan data', simulated: true };
+    }
+
+    try {
+      const existing = await this.getBedData();
+      const rooms = existing.success && Array.isArray(existing.data)
+        ? existing.data
+        : (existing.data && existing.data.fasyankes ? existing.data.fasyankes : []);
+
+      if (rooms.length === 0) {
+        return { success: true, message: 'Tidak ada data tempat tidur di SIRANAP' };
+      }
+
+      let deleted = 0;
+      let zeroed = 0;
+
+      for (const room of rooms) {
+        if (!room.id_t_tt && !room.id_tt) continue;
+
+        try {
+          await axios({
+            method: 'delete',
+            url: `${this.baseUrl}/fo/index.php/Fasyankes`,
+            data: { id_t_tt: room.id_t_tt, id_tt: room.id_tt, ruang: room.ruang },
+            headers: this._buildHeaders(),
+            timeout: 8000,
+          });
+          deleted++;
+        } catch {
+          // fallback: zero-out
+          await axios({
+            method: 'put',
+            url: `${this.baseUrl}/fo/index.php/Fasyankes`,
+            data: {
+              id_t_tt: room.id_t_tt,
+              id_tt: room.id_tt,
+              ruang: room.ruang,
+              jumlah_ruang: '0',
+              jumlah: '0',
+              terpakai: '0',
+              terpakai_suspek: '0',
+              terpakai_konfirmasi: '0',
+              prepare: '0',
+              prepare_plan: '0',
+              covid: '0',
+              antrian: '0'
+            },
+            headers: this._buildHeaders(),
+            timeout: 8000,
+          });
+          zeroed++;
+        }
+      }
+
+      return {
+        success: true,
+        message: `Data dibersihkan: ${deleted} dihapus, ${zeroed} di-nol-kan`,
+        deleted,
+        zeroed,
+      };
+    } catch (error) {
+      throw this._handleError('clearBedData', error);
     }
   }
 

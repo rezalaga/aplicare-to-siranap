@@ -112,6 +112,36 @@ router.post('/sync/manual', authMiddleware, async (req, res) => {
 });
 
 // -------------------------------------------------------
+// POST /api/sync/clear-and-resync
+// Hapus data di SIRANAP lalu kirim ulang dari APLICARE
+// -------------------------------------------------------
+router.post('/sync/clear-and-resync', authMiddleware, async (req, res) => {
+  try {
+    console.log('[API] Clear & Resync dipicu...');
+
+    const clearResult = await siranapService.clearBedData();
+    console.log(`[API] Clear selesai: ${clearResult.message}`);
+
+    const syncResult = await bridgeService.syncManual('clear-resync');
+
+    res.json({
+      success: syncResult.success,
+      message: `Clear: ${clearResult.message} | Sync: ${syncResult.message}`,
+      data: {
+        clear: clearResult,
+        sync: syncResult,
+      },
+    });
+  } catch (error) {
+    console.error('[API] Error clear & resync:', error.message);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+});
+
+// -------------------------------------------------------
 // GET /api/bed-data
 // Data tempat tidur terakhir dari cache log
 // -------------------------------------------------------
