@@ -151,6 +151,10 @@ class AplicareService {
       }
 
       return allItems;
+    } catch (error) {
+      throw this._handleError('getBedAvailability', error);
+    }
+  }
 
   /**
    * Test koneksi ke API BPJS
