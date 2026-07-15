@@ -93,7 +93,7 @@ router.get('/logs', (req, res) => {
 // POST /api/sync/manual
 // Trigger sinkronisasi manual
 // -------------------------------------------------------
-router.post('/sync/manual', authMiddleware, async (req, res) => {
+router.post('/sync/manual', async (req, res) => {
   try {
     console.log('[API] Sinkronisasi manual dipicu via web dashboard');
     const result = await bridgeService.syncManual('manual-web');
@@ -115,7 +115,7 @@ router.post('/sync/manual', authMiddleware, async (req, res) => {
 // POST /api/sync/clear-and-resync
 // Hapus data di SIRANAP lalu kirim ulang dari APLICARE
 // -------------------------------------------------------
-router.post('/sync/clear-and-resync', authMiddleware, async (req, res) => {
+router.post('/sync/clear-and-resync', async (req, res) => {
   try {
     console.log('[API] Clear & Resync dipicu...');
 
