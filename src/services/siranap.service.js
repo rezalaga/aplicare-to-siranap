@@ -1,6 +1,7 @@
 'use strict';
 
 const axios = require('axios');
+const { getMapping } = require('./mapping.service');
 
 /**
  * Service untuk berkomunikasi dengan API SIRANAP Kementerian Kesehatan
@@ -60,12 +61,7 @@ class SiranapService {
         existingMap.set(room.ruang, room);
       });
 
-      // 2. Mapping kode kelas BPJS ke id_tt SIRANAP
-      const classMap = {
-        'VVIP': '1', 'VIP': '2', 'KL1': '3', 'KL2': '4', 'KL3': '5',
-        'ICU': '6', 'HCU': '7', 'ICC': '8', 'NIC': '10', 'PIC': '11', 'ISO': '12'
-      };
-
+      // 2. Mapping kode kelas Aplicare ke id_tt SIRANAP (via mapping.service)
       let successCount = 0;
       let errorCount = 0;
       let lastError = null;
@@ -76,7 +72,7 @@ class SiranapService {
       for (let i = 0; i < bedData.length; i += BATCH_SIZE) {
         const batch = bedData.slice(i, i + BATCH_SIZE);
         const results = await Promise.allSettled(batch.map(async (bed) => {
-          let id_tt = classMap[bed.kode_kelas] || '5'; 
+          let id_tt = getMapping(bed.kode_kelas, bed.nama_kelas).id_tt;
           const ruang = bed.nama_ruang;
           const existingRoom = existingMap.get(ruang);
           let method = 'post';
