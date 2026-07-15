@@ -93,7 +93,7 @@ class AplicareService {
 
     try {
       const response = await axios.get(
-        `${this.baseUrl}/aplicaresws/rest/bed/read/${this.kodePPK}/1/100`,
+        `${this.baseUrl}/aplicaresws/rest/bed/read/${this.kodePPK}/1/1000`,
         {
           headers: this._buildHeaders(),
           timeout: 30000,
@@ -102,7 +102,6 @@ class AplicareService {
 
       const data = response.data;
 
-      // Cek apakah BPJS mengembalikan error di dalam JSON response (meskipun HTTP 200 OK)
       const meta = data.metadata || data.metaData;
       
       const isSuccess = meta && (meta.code === 200 || meta.code === '200' || meta.Code === 200 || meta.Code === '200' || meta.code === 1 || meta.code === '1');
@@ -113,23 +112,46 @@ class AplicareService {
         throw new Error(`[BPJS] ${errorCode} - ${errorMsg}`);
       }
 
-      // Handle berbagai format response BPJS yang sukses
+      let allItems = [];
+
       if (isSuccess) {
         if (data.response && Array.isArray(data.response.list)) {
-          return data.response.list;
+          allItems = data.response.list;
+        } else {
+          allItems = data.response || [];
         }
-        return data.response || [];
       } else if (Array.isArray(data)) {
-        return data;
+        allItems = data;
       } else if (data && data.response) {
-        return Array.isArray(data.response) ? data.response : [data.response];
+        allItems = Array.isArray(data.response) ? data.response : [data.response];
       }
 
-      return [];
-    } catch (error) {
-      throw this._handleError('getBedAvailability', error);
-    }
-  }
+      // pagination via 'total' + 'list' response
+      const total = meta && (meta.total || meta.Total || meta.jumlah || meta.Jumlah);
+      const pageSize = 1000;
+      const currentPage = 1;
+
+      if (total && total > pageSize) {
+        const totalPages = Math.ceil(total / pageSize);
+        const pagePromises = [];
+        for (let page = 2; page <= totalPages; page++) {
+          pagePromises.push(
+            axios.get(
+              `${this.baseUrl}/aplicaresws/rest/bed/read/${this.kodePPK}/${page}/${pageSize}`,
+              { headers: this._buildHeaders(), timeout: 30000 }
+            ).then(resp => {
+              const d = resp.data;
+              if (d.response && Array.isArray(d.response.list)) return d.response.list;
+              if (Array.isArray(d.response)) return d.response;
+              return [];
+            }).catch(() => [])
+          );
+        }
+        const extraPages = await Promise.all(pagePromises);
+        extraPages.forEach(items => { allItems = allItems.concat(items); });
+      }
+
+      return allItems;
 
   /**
    * Test koneksi ke API BPJS
