@@ -93,7 +93,7 @@ class AplicareService {
 
     try {
       const response = await axios.get(
-        `${this.baseUrl}/aplicaresws/rest/bed/read/${this.kodePPK}/1/1000`,
+        `${this.baseUrl}/aplicaresws/rest/bed/read/${this.kodePPK}/1/200`,
         {
           headers: this._buildHeaders(),
           timeout: 30000,
@@ -128,8 +128,7 @@ class AplicareService {
 
       // pagination via 'total' + 'list' response
       const total = meta && (meta.total || meta.Total || meta.jumlah || meta.Jumlah);
-      const pageSize = 1000;
-      const currentPage = 1;
+      const pageSize = 200;
 
       if (total && total > pageSize) {
         const totalPages = Math.ceil(total / pageSize);
