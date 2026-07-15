@@ -72,7 +72,7 @@ class SiranapService {
       for (let i = 0; i < bedData.length; i += BATCH_SIZE) {
         const batch = bedData.slice(i, i + BATCH_SIZE);
         const results = await Promise.allSettled(batch.map(async (bed) => {
-          const id_tt = getMapping(bed.kode_kelas, bed.nama_kelas).id_tt;
+          let id_tt = getMapping(bed.kode_kelas, bed.nama_kelas).id_tt;
           const nama = bed.nama_ruang || '';
           const parts = nama.split(' ');
           let ruang = parts.length > 1 ? parts[parts.length - 1] : nama;
