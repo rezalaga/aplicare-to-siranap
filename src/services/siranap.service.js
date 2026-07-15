@@ -58,7 +58,7 @@ class SiranapService {
       const existingMap = new Map();
       existingRooms.forEach(room => {
         if (!room.ruang) return;
-        existingMap.set(room.ruang, room);
+        existingMap.set(room.ruang + '|' + room.id_tt, room);
       });
 
       // 2. Mapping kode kelas Aplicare ke id_tt SIRANAP (via mapping.service)
@@ -77,9 +77,9 @@ class SiranapService {
           const parts = nama.split(' ');
           let ruang = parts.length > 1 ? parts[parts.length - 1] : nama;
           if (nama.startsWith('HDU')) ruang = ruang.padStart(2, '0');
-          let existingRoom = existingMap.get(ruang);
+          let existingRoom = existingMap.get(ruang + '|' + id_tt);
           if (nama !== ruang) {
-            const old = existingMap.get(nama);
+            const old = existingMap.get(nama + '|' + id_tt);
             if (old) {
               try {
                 await axios.delete(`${this.baseUrl}/fo/index.php/Fasyankes`, {
