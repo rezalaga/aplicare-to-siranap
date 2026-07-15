@@ -54,6 +54,23 @@
     </div>
   </header>
 
+  <!-- Scheduler Status Bar -->
+  <div id="scheduler-bar" style="background: linear-gradient(135deg, #1e293b, #0f172a); border-bottom: 1px solid rgba(255,255,255,0.08); padding: 8px 24px; display: flex; align-items: center; gap: 20px; flex-wrap: wrap; font-size: 13px;">
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <span style="color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; font-size: 11px;">Scheduler</span>
+      <span id="sched-dot" style="width: 8px; height: 8px; border-radius: 50%; background: #64748b; display: inline-block;"></span>
+      <span id="sched-status-text" style="color: #94a3b8;">Memuat...</span>
+    </div>
+    <button id="sched-toggle-btn" class="btn">Memuat...</button>
+    <div style="display: flex; gap: 6px; align-items: center; margin-left: auto;">
+      <span style="color: #64748b; font-size: 11px;">Interval:</span>
+      <button class="sched-intv" data-cron="*/5 * * * *">5m</button>
+      <button class="sched-intv" data-cron="*/15 * * * *">15m</button>
+      <button class="sched-intv" data-cron="*/30 * * * *">30m</button>
+      <button class="sched-intv" data-cron="0 * * * *">1j</button>
+    </div>
+  </div>
+
   <main class="main container">
     <!-- Connection Status Banner -->
     <section class="connections-section" id="connections-section">
@@ -227,7 +244,33 @@
         <h2 class="section-title">Konfigurasi Aktif</h2>
       </div>
       <div class="config-grid" id="config-grid">
-        <div class="config-loading">Memuat konfigurasi...</div>
+        <div class="config-item">
+          <span class="config-key">BPJS Base URL</span>
+          <span class="config-value" id="cfg-bpjs-url">Memuat...</span>
+        </div>
+        <div class="config-item">
+          <span class="config-key">BPJS Consumer ID</span>
+          <span class="config-value" id="cfg-bpjs-consid">Memuat...</span>
+        </div>
+        <div class="config-item">
+          <span class="config-key">BPJS Kode PPK</span>
+          <span class="config-value" id="cfg-bpjs-ppk">Memuat...</span>
+        </div>
+        <div class="config-item">
+          <span class="config-key">SIRANAP Base URL</span>
+          <span class="config-value" id="cfg-siranap-url">Memuat...</span>
+        </div>
+        <div class="config-item">
+          <span class="config-key">SIRANAP Kode RS</span>
+          <span class="config-value" id="cfg-siranap-rsid">Memuat...</span>
+        </div>
+        <div class="config-item">
+          <span class="config-key">Jadwal Sinkronisasi</span>
+          <span class="config-value">
+            <span id="cfg-cron-value">Memuat...</span>
+            <span class="config-badge" id="cfg-scheduler-badge">Memuat...</span>
+          </span>
+        </div>
       </div>
     </section>
   </main>

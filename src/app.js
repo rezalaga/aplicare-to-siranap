@@ -20,8 +20,16 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Static files (dashboard web)
-app.use(express.static(path.join(__dirname, 'public')));
+// Static files (dashboard web) — tanpa cache agar update langsung terlihat
+app.use(express.static(path.join(__dirname, 'public'), {
+  etag: false,
+  lastModified: false,
+  setHeaders: (res) => {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+  },
+}));
 
 // -------------------------------------------------------
 // Routes
@@ -43,32 +51,57 @@ app.get('*', (req, res) => {
 });
 
 // -------------------------------------------------------
-// Cron Scheduler
+// Cron Scheduler (dengan runtime control)
 // -------------------------------------------------------
-const SYNC_CRON = process.env.SYNC_CRON || '*/15 * * * *';
+let scheduledTask = null;
+let schedulerRunning = false;
+let currentCronExpression = process.env.SYNC_CRON || '*/15 * * * *';
 const SYNC_ENABLED = process.env.SYNC_ENABLED !== 'false';
 
+function createScheduler(cronExpression) {
+  if (scheduledTask) scheduledTask.stop();
+  const expr = cron.validate(cronExpression) ? cronExpression : '*/15 * * * *';
+  currentCronExpression = expr;
+  scheduledTask = cron.schedule(expr, async () => {
+    try { await bridgeService.sync(); }
+    catch (error) { console.error('[CRON] Error sinkronisasi otomatis:', error.message); }
+  }, { timezone: 'Asia/Jakarta' });
+  schedulerRunning = true;
+  console.log(`[CRON] Scheduler: "${expr}" (berjalan)`);
+  return scheduledTask;
+}
+
 if (SYNC_ENABLED) {
-  if (!cron.validate(SYNC_CRON)) {
-    console.error(`[CRON] Ekspresi cron tidak valid: "${SYNC_CRON}". Menggunakan default: "*/15 * * * *"`);
-  }
-
-  const cronExpression = cron.validate(SYNC_CRON) ? SYNC_CRON : '*/15 * * * *';
-
-  cron.schedule(cronExpression, async () => {
-    try {
-      await bridgeService.sync();
-    } catch (error) {
-      console.error('[CRON] Error sinkronisasi otomatis:', error.message);
-    }
-  }, {
-    timezone: 'Asia/Jakarta',
-  });
-
-  console.log(`[CRON] Scheduler aktif dengan jadwal: "${cronExpression}" (WIB)`);
+  createScheduler(currentCronExpression);
 } else {
   console.log('[CRON] Scheduler dinonaktifkan (SYNC_ENABLED=false)');
 }
+
+app.set('scheduler', {
+  start: () => {
+    if (!scheduledTask || schedulerRunning) return false;
+    scheduledTask.start();
+    schedulerRunning = true;
+    console.log(`[CRON] Scheduler dijalankan: "${currentCronExpression}"`);
+    return true;
+  },
+  stop: () => {
+    if (!scheduledTask || !schedulerRunning) return false;
+    scheduledTask.stop();
+    schedulerRunning = false;
+    console.log(`[CRON] Scheduler dihentikan`);
+    return true;
+  },
+  reschedule: (cronExpression) => {
+    if (!cron.validate(cronExpression)) throw new Error(`Ekspresi cron tidak valid: "${cronExpression}"`);
+    createScheduler(cronExpression);
+    return currentCronExpression;
+  },
+  status: () => ({
+    running: schedulerRunning,
+    cron: currentCronExpression,
+  }),
+});
 
 // -------------------------------------------------------
 // Start Server
@@ -82,7 +115,7 @@ app.listen(PORT, () => {
   console.log(`║  RS    : ${rsName.padEnd(40)}║`);
   console.log(`║  Port  : http://localhost:${PORT.toString().padEnd(22)} ║`);
   console.log(`║  Env   : ${(process.env.NODE_ENV || 'development').padEnd(40)}║`);
-  console.log(`║  Cron  : ${SYNC_CRON.padEnd(40)}║`);
+  console.log(`║  Cron  : ${currentCronExpression.padEnd(40)}║`);
   console.log('╚══════════════════════════════════════════════════╝');
   console.log('');
 });

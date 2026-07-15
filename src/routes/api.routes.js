@@ -162,6 +162,51 @@ router.get('/bed-data', (req, res) => {
 });
 
 // -------------------------------------------------------
+// GET /api/scheduler
+// Status scheduler runtime
+// -------------------------------------------------------
+router.get('/scheduler', (req, res) => {
+  try {
+    const scheduler = req.app.get('scheduler');
+    res.json({ success: true, ...scheduler.status() });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// -------------------------------------------------------
+// POST /api/scheduler/toggle
+// Start/Stop scheduler
+// -------------------------------------------------------
+router.post('/scheduler/toggle', (req, res) => {
+  try {
+    const scheduler = req.app.get('scheduler');
+    const status = scheduler.status();
+    if (status.running) scheduler.stop();
+    else scheduler.start();
+    res.json({ success: true, ...scheduler.status() });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// -------------------------------------------------------
+// PUT /api/scheduler/schedule
+// Ubah jadwal cron
+// -------------------------------------------------------
+router.put('/scheduler/schedule', (req, res) => {
+  try {
+    const { cron: cronExpr } = req.body;
+    if (!cronExpr) return res.status(400).json({ success: false, message: 'Field "cron" diperlukan' });
+    const scheduler = req.app.get('scheduler');
+    scheduler.reschedule(cronExpr);
+    res.json({ success: true, ...scheduler.status() });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+});
+
+// -------------------------------------------------------
 // GET /api/config
 // Konfigurasi yang aktif (tanpa secret)
 // -------------------------------------------------------
@@ -183,6 +228,7 @@ router.get('/config', (req, res) => {
       scheduler: {
         cron: process.env.SYNC_CRON || '*/15 * * * *',
         enabled: process.env.SYNC_ENABLED !== 'false',
+        running: req.app.get('scheduler').status().running,
       },
     },
   });

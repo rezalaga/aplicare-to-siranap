@@ -2,6 +2,9 @@
 
 const crypto = require('crypto');
 const axios = require('axios');
+const https = require('https');
+
+const httpsAgent = new https.Agent({ rejectUnauthorized: false });
 
 /**
  * Service untuk berkomunikasi dengan API APLICARE BPJS Kesehatan
@@ -73,6 +76,7 @@ class AplicareService {
         {
           headers: this._buildHeaders(),
           timeout: 10000,
+          httpsAgent,
         }
       );
       return response.data;
@@ -97,6 +101,7 @@ class AplicareService {
         {
           headers: this._buildHeaders(),
           timeout: 30000,
+          httpsAgent,
         }
       );
 
@@ -173,7 +178,8 @@ class AplicareService {
         `${this.baseUrl}/aplicaresws/rest/ref/kelas`,
         {
           headers: this._buildHeaders(),
-          timeout: 8000,
+          timeout: 10000,
+          httpsAgent,
         }
       );
       return { connected: true, message: 'Koneksi ke APLICARE BPJS berhasil', configured: true };

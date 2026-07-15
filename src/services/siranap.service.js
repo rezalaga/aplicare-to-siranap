@@ -57,7 +57,7 @@ class SiranapService {
       
       const existingMap = new Map();
       existingRooms.forEach(room => {
-        // Simpan seluruh objek room berdasarkan nama ruang agar kita bisa mewarisi id_tt yang benar dari Kemenkes
+        if (!room.ruang) return;
         existingMap.set(room.ruang, room);
       });
 
@@ -72,9 +72,29 @@ class SiranapService {
       for (let i = 0; i < bedData.length; i += BATCH_SIZE) {
         const batch = bedData.slice(i, i + BATCH_SIZE);
         const results = await Promise.allSettled(batch.map(async (bed) => {
-          let id_tt = getMapping(bed.kode_kelas, bed.nama_kelas).id_tt;
-          const ruang = bed.nama_ruang;
-          const existingRoom = existingMap.get(ruang);
+          const id_tt = getMapping(bed.kode_kelas, bed.nama_kelas).id_tt;
+          const nama = bed.nama_ruang || '';
+          const parts = nama.split(' ');
+          let ruang = parts.length > 1 ? parts[parts.length - 1] : nama;
+          if (nama.startsWith('HDU')) ruang = ruang.padStart(2, '0');
+          let existingRoom = existingMap.get(ruang);
+          if (nama !== ruang) {
+            const old = existingMap.get(nama);
+            if (old) {
+              try {
+                await axios.delete(`${this.baseUrl}/fo/index.php/Fasyankes`, {
+                  data: { id_t_tt: old.id_t_tt },
+                  headers: this._buildHeaders(),
+                  timeout: 10000
+                });
+                console.log(`[SIRANAP] Hapus room ${nama}, buat ${ruang}`);
+              } catch (e) {
+                console.log(`[SIRANAP] Gagal hapus ${nama}, fallback PUT`);
+                existingRoom = existingRoom || old;
+                if (!existingRoom) ruang = nama;
+              }
+            }
+          }
           let method = 'post';
           let id_t_tt = null;
 

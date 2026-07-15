@@ -11,6 +11,16 @@ document.addEventListener('DOMContentLoaded', () => {
   loadAll();
   startAutoRefresh();
   startLiveClock();
+
+  const bar = document.getElementById('scheduler-bar');
+  if (bar) {
+    bar.addEventListener('click', (e) => {
+      const btn = e.target.closest('#sched-toggle-btn');
+      if (btn) { toggleScheduler(); return; }
+      const intv = e.target.closest('.sched-intv');
+      if (intv) { updateSchedule(intv.getAttribute('data-cron')); }
+    });
+  }
 });
 
 function startAutoRefresh() {
@@ -19,6 +29,7 @@ function startAutoRefresh() {
     loadStatus();
     loadBedData();
     loadLogs(true);
+    loadConfig();
   }, 30000);
 }
 
@@ -362,36 +373,101 @@ function renderLogItem(log) {
 }
 
 /* ============================================================
-   CONFIG
+   CONFIG + SCHEDULER CONTROLS
    ============================================================ */
 async function loadConfig() {
   try {
-    const data = await apiFetch('/api/config');
-    if (!data.success) return;
+    const [configData, schedData] = await Promise.all([
+      apiFetch('/api/config'),
+      apiFetch('/api/scheduler'),
+    ]);
+    if (!configData.success) return;
 
-    const cfg = data.config;
-    const grid = document.getElementById('config-grid');
+    const cfg = configData.config;
 
-    const items = [
-      { key: 'BPJS Base URL', val: cfg.bpjs.base_url, badge: cfg.bpjs.configured ? 'ok' : 'warn', badgeText: cfg.bpjs.configured ? 'OK' : 'Belum dikonfigurasi' },
-      { key: 'BPJS Consumer ID', val: cfg.bpjs.cons_id },
-      { key: 'BPJS Kode PPK', val: cfg.bpjs.kode_ppk },
-      { key: 'SIRANAP Base URL', val: cfg.siranap.base_url, badge: cfg.siranap.configured ? 'ok' : 'warn', badgeText: cfg.siranap.configured ? 'OK' : 'Belum dikonfigurasi' },
-      { key: 'SIRANAP Kode RS', val: cfg.siranap.rs_id },
-      { key: 'Jadwal Sinkronisasi', val: cfg.scheduler.cron, badge: cfg.scheduler.enabled ? 'ok' : 'warn', badgeText: cfg.scheduler.enabled ? 'Aktif' : 'Nonaktif' },
-    ];
+    setText('cfg-bpjs-url', cfg.bpjs.base_url);
+    setText('cfg-bpjs-consid', cfg.bpjs.cons_id);
+    setText('cfg-bpjs-ppk', cfg.bpjs.kode_ppk);
+    setText('cfg-siranap-url', cfg.siranap.base_url);
+    setText('cfg-siranap-rsid', cfg.siranap.rs_id);
 
-    grid.innerHTML = items.map((item) => `
-      <div class="config-item">
-        <span class="config-key">${escHtml(item.key)}</span>
-        <span class="config-value">
-          ${escHtml(item.val)}
-          ${item.badge ? `<span class="config-badge ${item.badge}">${item.badgeText}</span>` : ''}
-        </span>
-      </div>
-    `).join('');
+    setText('cfg-cron-value', cfg.scheduler.cron);
+    const badgeEl = document.getElementById('cfg-scheduler-badge');
+    if (badgeEl) {
+      const isRunning = cfg.scheduler.running;
+      badgeEl.textContent = isRunning ? 'Berjalan' : 'Berhenti';
+      badgeEl.className = 'config-badge ' + (isRunning ? 'ok' : 'warn');
+    }
+
+    updateSchedulerUI(schedData || { running: false, cron: '*/15 * * * *' });
   } catch (err) {
-    document.getElementById('config-grid').innerHTML = '<div class="config-loading">Gagal memuat konfigurasi</div>';
+    console.error('loadConfig error:', err);
+  }
+}
+
+function updateSchedulerUI(status) {
+  const isRunning = status.running;
+  const currentCron = status.cron || '*/15 * * * *';
+
+  const dot = document.getElementById('sched-dot');
+  const text = document.getElementById('sched-status-text');
+  const btn = document.getElementById('sched-toggle-btn');
+  if (dot) {
+    dot.style.background = isRunning ? 'var(--accent-green)' : 'var(--text-muted)';
+    dot.style.boxShadow = isRunning ? '0 0 8px rgba(16,185,129,0.5)' : 'none';
+  }
+  if (text) text.textContent = isRunning ? 'Berjalan' : 'Berhenti';
+  if (btn) {
+    btn.textContent = isRunning ? '⏹ Stop' : '▶ Start';
+    btn.className = 'btn ' + (isRunning ? 'running' : 'stopped');
+  }
+
+  document.querySelectorAll('.sched-intv').forEach(el => {
+    const cron = el.getAttribute('data-cron');
+    el.classList.toggle('active', cron === currentCron);
+  });
+}
+
+function cronLabel(cronExpr) {
+  const map = {
+    '*/5 * * * *': 'Setiap 5 menit',
+    '*/10 * * * *': 'Setiap 10 menit',
+    '*/15 * * * *': 'Setiap 15 menit',
+    '*/30 * * * *': 'Setiap 30 menit',
+    '0 * * * *': 'Setiap 1 jam',
+    '0 */2 * * *': 'Setiap 2 jam',
+    '0 */6 * * *': 'Setiap 6 jam',
+    '0 0 * * *': 'Setiap hari (tengah malam)',
+  };
+  return map[cronExpr] || cronExpr;
+}
+
+async function toggleScheduler() {
+  try {
+    const data = await apiFetch('/api/scheduler/toggle', { method: 'POST' });
+    if (data.success) {
+      updateSchedulerUI(data);
+      loadConfig();
+      showToast(data.running ? '▶ Scheduler dijalankan' : '⏹ Scheduler dihentikan', 'info');
+    }
+  } catch (err) {
+    showToast('❌ Gagal toggle scheduler: ' + err.message, 'error');
+  }
+}
+
+async function updateSchedule(cronExpr) {
+  try {
+    const data = await apiFetch('/api/scheduler/schedule', {
+      method: 'PUT',
+      body: JSON.stringify({ cron: cronExpr }),
+    });
+    if (data.success) {
+      updateSchedulerUI(data);
+      loadConfig();
+      showToast(`✅ Jadwal diubah: ${cronLabel(cronExpr)}`, 'success');
+    }
+  } catch (err) {
+    showToast('❌ Gagal mengubah jadwal: ' + err.message, 'error');
   }
 }
 
@@ -509,6 +585,11 @@ function formatDateTime(dtStr) {
 
 function escHtml(str) {
   return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function setText(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = val || '—';
 }
 
 function animateValue(id, target) {
