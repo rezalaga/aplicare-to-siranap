@@ -1,0 +1,11 @@
+INSERT INTO `kelas_simrs_kemkes` (`ID`, `KELAS`, `KEMKES_KELAS`, `STATUS`) VALUES (3, 5, '0001', 1);
+INSERT INTO `kelas_simrs_kemkes` (`ID`, `KELAS`, `KEMKES_KELAS`, `STATUS`) VALUES (4, 4, '0002', 1);
+INSERT INTO `kelas_simrs_kemkes` (`ID`, `KELAS`, `KEMKES_KELAS`, `STATUS`) VALUES (5, 3, '0003', 1);
+INSERT INTO `kelas_simrs_kemkes` (`ID`, `KELAS`, `KEMKES_KELAS`, `STATUS`) VALUES (6, 2, '0004', 1);
+INSERT INTO `kelas_simrs_kemkes` (`ID`, `KELAS`, `KEMKES_KELAS`, `STATUS`) VALUES (7, 1, '0005', 1);
+INSERT INTO `kelas_simrs_kemkes` (`ID`, `KELAS`, `KEMKES_KELAS`, `STATUS`) VALUES (8, 10, '0008', 1);
+INSERT INTO `kelas_simrs_kemkes` (`ID`, `KELAS`, `KEMKES_KELAS`, `STATUS`) VALUES (9, 8, '0007', 1);
+INSERT INTO `kelas_simrs_kemkes` (`ID`, `KELAS`, `KEMKES_KELAS`, `STATUS`) VALUES (10, 6, '0008', 1);
+INSERT INTO `kelas_simrs_kemkes` (`ID`, `KELAS`, `KEMKES_KELAS`, `STATUS`) VALUES (11, 12, '0008', 1);
+INSERT INTO `kelas_simrs_kemkes` (`ID`, `KELAS`, `KEMKES_KELAS`, `STATUS`) VALUES (12, 11, '0008', 1);
+INSERT INTO `kelas_simrs_kemkes` (`ID`, `KELAS`, `KEMKES_KELAS`, `STATUS`) VALUES (13, 13, '0008', 1);
